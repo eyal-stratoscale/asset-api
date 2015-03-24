@@ -17,6 +17,7 @@ class Client(api.Client):
         self._lock = threading.Lock()
         self._closed = False
         self._activeAllocations = []
+        self._heartbeat = None
         self.call("handshake", versionInfo=dict(
             ASSET_VERSION=api.VERSION,
             ZERO_MQ=dict(
@@ -47,7 +48,7 @@ class Client(api.Client):
         self._activeAllocations.append(allocationInstance)
         return allocationInstance
 
-    def call(self, cmd, ipcTimeoutMS=3000, ** kwargs):
+    def call(self, cmd, ipcTimeoutMS=10000, ** kwargs):
         with self._lock:
             if self._closed:
                 raise Exception("Already closed")
@@ -77,7 +78,8 @@ class Client(api.Client):
         if self._closed:
             return
         self._closed = True
-        self._heartbeat.stop()
+        if self._heartbeat:
+            self._heartbeat.stop()
         self._socket.close()
         self._context.destroy()
 
